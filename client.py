@@ -78,6 +78,39 @@ def estabeleceComunicacao(conn):
             opcao = input("Digite a opção desejada: ")
             conn.send(opcao.encode())
 
+            if opcao == '5': # Adicionar ou atualizar arquivo
+
+                while True:
+                    pathFile = input("Digite o caminho do arquivo: ")
+                    if not os.path.isfile(pathFile):
+                        print("Arquivo não encontrado, tente novamente!")
+                        continue
+                    else:
+                        break
+
+                serializar, dadosUpload = serializarArquivo(pathFile)
+                # Envia o nome do arquivo e o tamanho do arquivo
+                msg = pathFile + " && " + str(len(serializar.unpack(dadosUpload)[1])) 
+                conn.send(msg.encode())
+
+                # Aguarda mensagem de confirmação do servidor
+                response = conn.recv(2048).decode()
+                if (response == "200"):
+                    print("Enviando arquivo...")
+                    time.sleep(5)
+                    conn.send(dadosUpload)
+                    
+                    # Recebe mensagem de confirmação do servidor
+                    response = conn.recv(2048).decode()
+                    if (response == "200"):
+                        print("Arquivo enviado com sucesso!")
+                        time.sleep(5)
+                        continue
+                    else:
+                        print("Erro ao enviar arquivo! Servidor retornou: " + response)
+                        time.sleep(5)
+                        continue
+                    
             if opcao == '11':
                 print("Encerrando cliente...")
                 time.sleep(5)

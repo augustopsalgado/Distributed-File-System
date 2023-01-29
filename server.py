@@ -32,6 +32,7 @@ def execute_server(conn, addr):
     userAuth = login(conn)
     if(userAuth != False):
         estabeleceComunicacao(conn, userAuth)
+        start_server()
     else:
         print("Erro ao fazer login")
         time.sleep(10)
@@ -52,15 +53,42 @@ def estabeleceComunicacao(conn, user):
                 lista =  listarArquivos(user)
                 conn.send(lista.encode())
                 print("Arquivos listados com sucesso")
+            elif data == '5': # Adicionar ou atualizar arquivo
+                # receber o nome do arquivo e o tamanho do arquivo
+                dataFile = conn.recv(2048)
+                dataFile = dataFile.decode()
+
+                # separar o nome do arquivo e o tamanho do arquivo
+                dataFile = dataFile.split(" && ")
+                nomeArquivo = dataFile[0]
+                tamanhoArquivo = dataFile[1]
+
+                serializar = struct.Struct("{}s {}s".format(len(nomeArquivo.split()[0]), int(tamanhoArquivo.split()[0])))
                 
+                conn.send("200".encode())
+                print("Recebendo arquivo...")
+
+                # receber o arquivo
+                data = conn.recv(4096)
+                data = data.decode()
+
+                # deserializar o arquivo
+                nome, arquivo = serializar.unpack(data.encode())
+
+                if salvarArquivo(user, nome.decode(), arquivo):
+                    print("Arquivo salvo com sucesso")
+                    conn.send("200".encode())
+                else:
+                    print("Erro ao salvar arquivo")
+                    conn.send("405".encode())    
             elif data == '11':
                 print("Encerrando cliente...")
                 time.sleep(5)
                 conn.close()
                 return False
-            
-        except:
-            conn.close()
+        except Exception as e:
+            print(e)
+            #conn.close()
             return False
 
 def login(conn):

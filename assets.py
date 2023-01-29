@@ -1,6 +1,7 @@
 from datetime import datetime
 import hashlib
 import ctypes
+import struct
 import json
 import os
 
@@ -85,6 +86,65 @@ def configSessao(user):
 
         with open(fileAdr, "w+") as f:
             json.dump(meta, f, indent=4)
+
+
+def serializarArquivo(pathFile):
+    try:
+        with open(pathFile, "rb") as f:
+            dadosArquivo = f.read()
+            serializar = struct.Struct("{}s {}s".format(len(pathFile), len(dadosArquivo)))
+            dadosUpload = serializar.pack(*[pathFile.encode(), dadosArquivo])
+        
+        return serializar, dadosUpload
+    except FileNotFoundError:
+        print("Arquivo não encontrado")
+        return None
+
+
+def salvarArquivo(user, pathFile, dataFile):
+    nomeArquivo = pathFile.split("\\")[-1]
+    nomeArquivo = Files + user + "\\" + nomeArquivo
+
+    try:
+        try:
+            # receber o conteúdo do arquivo
+            with open(nomeArquivo, 'wb') as f:
+                f.write(dataFile)
+                print("Arquivo salvo com sucesso")
+        except Exception as e :
+            print("Erro ao salvar o arquivo")
+            print(e)
+            return False
+        
+        # atualizar o arquivo de metadados
+        fileAdr = Meta + user + "\\meta.json"
+        with open(fileAdr, "r") as f:
+            meta = json.load(f)
+
+        meta['modificado_em'] = str(datetime.now())
+        meta['arquivos'] = os.listdir(Files + user)
+
+        with open(fileAdr, "w") as f:
+            json.dump(meta, f, indent=4)
+        
+        return True
+    except:
+        print("Erro ao salvar o arquivo")
+        return False
+
+def uploadArquivo(user, pathFile, conn):
+    nomeArquivo = pathFile.split("\\")[-1]
+    nomeArquivo = Files + user + "\\" + nomeArquivo
+
+    # receber o conteúdo do arquivo
+    arq = open(nomeArquivo, 'wb')
+    while True:
+        data = conn.recv(2048)
+        if not data:
+            break
+        arq.write(data)
+    arq.close()
+    print("Arquivo recebido com sucesso")
 
 def listarArquivos(user):
     """
