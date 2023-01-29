@@ -41,6 +41,7 @@ def execute_server(conn, addr):
 
 def estabeleceComunicacao(conn, user):
     configSessao(user)
+
     while True:
         try:
             data = conn.recv(2048)
@@ -53,6 +54,75 @@ def estabeleceComunicacao(conn, user):
                 lista =  listarArquivos(user)
                 conn.send(lista.encode())
                 print("Arquivos listados com sucesso")
+            
+            elif data == '1': # Receber arquivo (cliente recebe arquivo do servidor)
+                # receber o nome do arquivo
+                dataFile = conn.recv(2048)
+                dataFile = dataFile.decode()
+
+                pathFile = "C:\\Files\\" + user + "\\" + dataFile
+
+                # Verifica se o arquivo existe
+                if (not os.path.exists(pathFile)):
+                    conn.send("404".encode())
+                    print("Arquivo não encontrado")
+                    continue
+                else:
+                    conn.send("200".encode())
+                    print("Enviando arquivo...")
+                    
+                    serializar, dadosUpload = serializarArquivo(pathFile)
+                    # Envia o nome do arquivo e o tamanho do arquivo
+                    msg = pathFile + " && " + str(len(serializar.unpack(dadosUpload)[1])) 
+                    conn.send(msg.encode())
+
+                    # Aguarda mensagem de confirmação do servidor
+                    response = conn.recv(2048).decode()
+                    if (response == "200"):
+                        print("Enviando arquivo...")
+                        time.sleep(5)
+                        conn.send(dadosUpload)
+                        
+                        # Recebe mensagem de confirmação do servidor
+                        response = conn.recv(2048).decode()
+                        if (response == "200"):
+                            print("Arquivo enviado com sucesso!")
+                            time.sleep(5)
+                            continue
+                        else:
+                            print("Erro ao enviar arquivo! Servidor retornou: " + response)
+                            time.sleep(5)
+                            continue
+
+            elif data == '3': # Excluir arquivo
+                # receber o nome do arquivo
+                dataFile = conn.recv(2048)
+                dataFile = dataFile.decode()
+
+                if excluirArquivo(user, dataFile):
+                    print("Arquivo excluído com sucesso")
+                    conn.send("200".encode())
+                else:
+                    print("Erro ao excluir arquivo")
+                    conn.send("405".encode())
+
+            elif data == '4': # Renomear arquivo
+                # receber o nome do arquivo
+                dataFile = conn.recv(2048)
+                dataFile = dataFile.decode()
+
+                # receber o novo nome do arquivo
+                newNameFile = conn.recv(2048)
+                newNameFile = newNameFile.decode()
+
+                if renomearArquivo(user, dataFile, newNameFile):
+                    print("Arquivo renomeado com sucesso")
+                    conn.send("200".encode())
+                else:
+                    print("Erro ao renomear arquivo")
+                    conn.send("405".encode())
+
+
             elif data == '5': # Adicionar ou atualizar arquivo
                 # receber o nome do arquivo e o tamanho do arquivo
                 dataFile = conn.recv(2048)
@@ -81,11 +151,13 @@ def estabeleceComunicacao(conn, user):
                 else:
                     print("Erro ao salvar arquivo")
                     conn.send("405".encode())    
+            
             elif data == '11':
                 print("Encerrando cliente...")
                 time.sleep(5)
                 conn.close()
                 return False
+            
         except Exception as e:
             print(e)
             #conn.close()

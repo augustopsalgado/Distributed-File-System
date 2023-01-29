@@ -35,12 +35,12 @@ def inicializa():
 def imprimemenu():
     print("\n\n------------------------------------------\n\n")
     print("Opções do sistema: \n")
-    print("0 - Exibir arquivos\n")
-    print("1 - Abrir um arquivo\n")
-    print("2 - Fechar um arquivo\n")
-    print("3 - Excluir um arquivo\n")
-    print("4 - Renomear um arquivo\n")
-    print("5 - Adicionar ou atualizar arquivo\n")
+    print("0 - Exibir arquivos*\n")
+    print("1 - Receber um arquivo*\n") # servidor pro cliente 
+    print("2 - Fechar um arquivo\n") 
+    print("3 - Excluir um arquivo*\n")
+    print("4 - Renomear um arquivo*\n")
+    print("5 - Adicionar ou atualizar arquivo*\n")
     print("6 - Dar permissão de acesso do arquivo a outro usuário\n")
     print("7 - Retirar permissão de acesso de outro usuário\n")
     print("8 - Mostrar histórico de acessos de um arquivo\n")
@@ -124,6 +124,7 @@ def salvarArquivo(user, pathFile, dataFile):
         meta['modificado_em'] = str(datetime.now())
         meta['arquivos'] = os.listdir(Files + user)
 
+
         with open(fileAdr, "w") as f:
             json.dump(meta, f, indent=4)
         
@@ -132,19 +133,60 @@ def salvarArquivo(user, pathFile, dataFile):
         print("Erro ao salvar o arquivo")
         return False
 
-def uploadArquivo(user, pathFile, conn):
-    nomeArquivo = pathFile.split("\\")[-1]
+def excluirArquivo(user, nomeArquivo):
     nomeArquivo = Files + user + "\\" + nomeArquivo
 
-    # receber o conteúdo do arquivo
-    arq = open(nomeArquivo, 'wb')
-    while True:
-        data = conn.recv(2048)
-        if not data:
-            break
-        arq.write(data)
-    arq.close()
-    print("Arquivo recebido com sucesso")
+    try:
+        os.remove(nomeArquivo)
+        print("Arquivo excluído com sucesso")
+    except FileNotFoundError:
+        print("Arquivo não encontrado")
+        return False
+    except Exception as e:
+        print("Erro ao excluir o arquivo")
+        print(e)
+        return False
+
+    # atualizar o arquivo de metadados
+    fileAdr = Meta + user + "\\meta.json"
+    with open(fileAdr, "r") as f:
+        meta = json.load(f)
+
+    meta['modificado_em'] = str(datetime.now())
+    meta['arquivos'] = os.listdir(Files + user)
+
+    with open(fileAdr, "w") as f:
+        json.dump(meta, f, indent=4)
+    
+    return True
+
+def renomearArquivo(user, nomeArquivo, novoNome):
+    nomeArquivo = Files + user + "\\" + nomeArquivo
+    novoNome = Files + user + "\\" + novoNome
+
+    try:
+        os.rename(nomeArquivo, novoNome)
+        print("Arquivo renomeado com sucesso")
+    except FileNotFoundError:
+        print("Arquivo não encontrado")
+        return False
+    except Exception as e:
+        print("Erro ao renomear o arquivo")
+        print(e)
+        return False
+
+    # atualizar o arquivo de metadados
+    fileAdr = Meta + user + "\\meta.json"
+    with open(fileAdr, "r") as f:
+        meta = json.load(f)
+
+    meta['modificado_em'] = str(datetime.now())
+    meta['arquivos'] = os.listdir(Files + user)
+
+    with open(fileAdr, "w") as f:
+        json.dump(meta, f, indent=4)
+    
+    return True
 
 def listarArquivos(user):
     """

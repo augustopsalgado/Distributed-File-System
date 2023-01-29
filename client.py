@@ -78,8 +78,112 @@ def estabeleceComunicacao(conn):
             opcao = input("Digite a opção desejada: ")
             conn.send(opcao.encode())
 
-            if opcao == '5': # Adicionar ou atualizar arquivo
+            if opcao == '1': # Receber arquivo do servidor
+                # Enviar o nome do arquivo que deseja receber
+                FileName = input("Digite o nome do arquivo: ")
+                conn.send(FileName.encode())
 
+                # receber resposta do servidor
+                response = conn.recv(2048)
+                response = response.decode()
+
+                if response == "404":
+                    print("Arquivo não encontrado!")
+                    continue
+                else:
+                    print("Arquivo encontrado!")
+                    # receber o nome do arquivo e o tamanho do arquivo
+                    dataFile = conn.recv(2048)
+                    dataFile = dataFile.decode()
+
+                    # separar o nome do arquivo e o tamanho do arquivo
+                    dataFile = dataFile.split(" && ")
+                    nomeArquivo = dataFile[0]
+                    tamanhoArquivo = dataFile[1]
+
+                    serializar = struct.Struct("{}s {}s".format(len(nomeArquivo.split()[0]), int(tamanhoArquivo.split()[0])))
+                    
+                    conn.send("200".encode())
+                    print("Recebendo arquivo...")
+
+                    # receber o arquivo
+                    data = conn.recv(4096)
+                    data = data.decode()
+
+                    # deserializar o arquivo
+                    nome, arquivo = serializar.unpack(data.encode())
+                    
+                    # salvar o arquivo
+                    print(nome)
+                    print(arquivo)
+
+                    while True:
+                        path = input("Digite o caminho para salvar o arquivo.  Exemplo:(C:\FileClient) \n")
+                        
+                        if not os.path.isdir(path):
+                            print("Caminho não existe, tente novamente!")
+                            continue
+                        else:
+                            break
+                    
+                    path = path + "\\" + FileName
+                    try:
+                        # receber o conteúdo do arquivo
+                        with open(path, 'wb') as f:
+                            f.write(arquivo)
+                            print("Arquivo salvo com sucesso")
+                            time.sleep(2)
+                    except Exception as e :
+                        print("Erro ao salvar o arquivo")
+                        print(e)
+                        time.sleep(2)
+                    continue
+            
+            elif opcao == '3': # Excluir arquivo do servidor
+                # Enviar o nome do arquivo que deseja excluir
+                FileName = input("Digite o nome do arquivo: ")
+                conn.send(FileName.encode())
+
+                # receber resposta do servidor
+                response = conn.recv(2048)
+                response = response.decode()
+
+                if response == "404":
+                    print("Arquivo não encontrado!")
+                    continue
+                else:
+                    print("Arquivo encontrado!")
+                    print("Excluindo arquivo...")
+                    time.sleep(2)
+                    print("Arquivo excluído com sucesso!")
+                    time.sleep(2)
+                    continue
+            
+            elif opcao == '4': # Renomear arquivo do servidor
+                # Enviar o nome do arquivo que deseja renomear
+                FileName = input("Digite o nome do arquivo: ")
+                conn.send(FileName.encode())
+
+                # Enviar novo nome do arquivo
+                newFileName = input("Digite o novo nome do arquivo: ")
+                conn.send(newFileName.encode())
+
+                # receber resposta do servidor
+                response = conn.recv(2048)
+                response = response.decode()
+
+                if response == "405":
+                    print("Arquivo não encontrado!")
+                    continue
+                else:
+                    print("Arquivo encontrado!")
+                    print("Renomeando arquivo...")
+                    time.sleep(2)
+                    print("Arquivo renomeado com sucesso!")
+                    time.sleep(2)
+                    continue
+
+            elif opcao == '5': # Adicionar ou atualizar arquivo
                 while True:
                     pathFile = input("Digite o caminho do arquivo: ")
                     if not os.path.isfile(pathFile):
@@ -111,7 +215,7 @@ def estabeleceComunicacao(conn):
                         time.sleep(5)
                         continue
                     
-            if opcao == '11':
+            elif opcao == '11':
                 print("Encerrando cliente...")
                 time.sleep(5)
                 conn.close()
@@ -122,7 +226,7 @@ def estabeleceComunicacao(conn):
             data = data.decode()
 
             print(data)
-            time.sleep(5)
+            time.sleep(2)
 
         except KeyboardInterrupt:
             print("Encerrando cliente...")
