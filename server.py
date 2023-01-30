@@ -3,56 +3,78 @@ import threading
 import socket
 import time
 
+"""
+Arquivo responsável por iniciar o servidor e receber as requisições dos clientes
+
+"""
+
 class ThreadedServer(object):
-    def __init__(self, host, port):
-        self.host = host
-        self.port = port
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind((self.host, self.port))
+    """
+    Classe responsável por iniciar o servidor e receber as requisições dos clientes
+    """
+    def __init__(self, host, port): 
+        """
+        Construtor da classe
+        """
+        self.host = host # Endereço do servidor
+        self.port = port # Porta do servidor
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # Cria o socket
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # Configura o socket
+        self.sock.bind((self.host, self.port)) # Associa o socket ao endereço e porta
 
     def listen(self):
-        self.sock.listen(5)
+        """
+        Método responsável por iniciar o servidor e receber as requisições dos clientes
+        """ 
+        self.sock.listen(5) # Inicia o servidor
         print ("Server listening")	
-        while True:
-            client, address = self.sock.accept()
-            print ('Conexão aceita, bem vindo ' + str(address))
-            client.settimeout(60)
-            threading.Thread(target = execute_server , args = (client,address)).start()
+        while True: # Loop infinito para receber as requisições dos clientes
+            client, address = self.sock.accept()  # Aceita a conexão do cliente
+            print ('Conexão aceita, bem vindo ' + str(address)) # Exibe mensagem de boas vindas
+            client.settimeout(600) # Configura o tempo de timeout
+            threading.Thread(target = execute_server , args = (client,address)).start() # Inicia uma thread para atender o cliente
 
 def start_server():
-    host = socket.gethostname()
-    port = 5000
+    """
+    Função responsável por iniciar o servidor
+    """
+    host = socket.gethostname() # Pega o nome do host
+    port = 5000 # Porta do servidor
 
-    ThreadedServer(host, port).listen()
+    ThreadedServer(host, port).listen() # Inicia o servidor criando uma instância da classe ThreadedServer
 
 def execute_server(conn, addr):
+    """
+    Função responsável por receber as requisições dos clientes gerenciando as threads
+    E também é responsável por enviar as mensagens de boas vindas
+    Estabelendo a comunicação com o cliente
+    """
     conn.send('Bem vindo ao servidor de arquivos!\n'.encode())
 
-    userAuth = login(conn)
-    if(userAuth != False):
-        estabeleceComunicacao(conn, userAuth)
-        start_server()
-    else:
-        print("Erro ao fazer login")
-        time.sleep(10)
-        conn.close()
-        start_server()
+    userAuth = login(conn) # Faz o login do usuário
+    if(userAuth != False): # Se o usuário foi autenticado
+        estabeleceComunicacao(conn, userAuth) # Estabelece a comunicação com o cliente
+        start_server() # Inicia o servidor
+    else: # Se o usuário não foi autenticado
+        print("Erro ao fazer login") 
+        time.sleep(10) 
+        conn.close() # Fecha a conexão
+        start_server() # Inicia o servidor novamente
 
 def estabeleceComunicacao(conn, user):
-    configSessao(user)
+    """
+    Função responsável por estabelecer a comunicação com o cliente
+    """
+    configSessao(user) # Configura a sessão do usuário
 
-    while True:
-        try:
-            data = conn.recv(2048)
+    while True: # Loop infinito para receber as requisições do cliente
+        try:  # Tenta receber a requisição do cliente
+            data = conn.recv(2048) # Recebe a requisição do cliente
             data = data.decode()
 
-            if data == '0': # Exibir/Listar arquivos
-                """
-                O usuário tem acesso somente aos arquivos que ele criou
-                """
-                lista =  listarArquivos(user)
-                conn.send(lista.encode())
+            if data == '0': # Exibir/Listar arquivos (cliente lista os arquivos do servidor)
+                lista =  listarArquivos(user) # Lista os arquivos do usuário
+                conn.send(lista.encode()) # Envia a lista de arquivos para o cliente
                 print("Arquivos listados com sucesso")
             
             elif data == '1': # Receber arquivo (cliente recebe arquivo do servidor)
@@ -60,37 +82,37 @@ def estabeleceComunicacao(conn, user):
                 dataFile = conn.recv(2048)
                 dataFile = dataFile.decode()
 
-                pathFile = "C:\\Files\\" + user + "\\" + dataFile
+                pathFile = "C:\\Files\\" + user + "\\" + dataFile # Path do arquivo
 
-                # Verifica se o arquivo existe
-                if (not os.path.exists(pathFile)):
-                    conn.send("404".encode())
+                # Verifica se o arquivo existe no servidor
+                if (not os.path.exists(pathFile)): # Se o arquivo não existe
+                    conn.send("404".encode()) # Envia mensagem de erro para o cliente
                     print("Arquivo não encontrado")
-                    continue
-                else:
-                    conn.send("200".encode())
-                    print("Enviando arquivo...")
+                    continue # Volta para o início do loop
+                else: # Se o arquivo existe
+                    conn.send("200".encode()) # Envia mensagem de sucesso para o cliente
+                    print("Enviando arquivo...") 
                     
-                    serializar, dadosUpload = serializarArquivo(pathFile)
+                    serializar, dadosUpload = serializarArquivo(pathFile) # Serializa o arquivo
                     # Envia o nome do arquivo e o tamanho do arquivo
-                    msg = pathFile + " && " + str(len(serializar.unpack(dadosUpload)[1])) 
-                    conn.send(msg.encode())
-
-                    # Aguarda mensagem de confirmação do servidor
+                    msg = pathFile + " && " + str(len(serializar.unpack(dadosUpload)[1]))  # Monta a mensagem
+                    conn.send(msg.encode()) # Envia a mensagem para o cliente
+ 
+                    # Aguarda mensagem de confirmação do cliente
                     response = conn.recv(2048).decode()
-                    if (response == "200"):
+                    if (response == "200"): # Se o cliente retornou 200
                         print("Enviando arquivo...")
                         time.sleep(5)
-                        conn.send(dadosUpload)
+                        conn.send(dadosUpload) # Envia o arquivo para o cliente
                         
                         # Recebe mensagem de confirmação do servidor
                         response = conn.recv(2048).decode()
-                        if (response == "200"):
+                        if (response == "200"): # Se o cliente retornou 200
                             print("Arquivo enviado com sucesso!")
                             time.sleep(5)
                             continue
-                        else:
-                            print("Erro ao enviar arquivo! Servidor retornou: " + response)
+                        else: # Se o cliente retornou 404
+                            print("Erro ao receber arquivo! cliente retornou: " + response)
                             time.sleep(5)
                             continue
 
@@ -99,12 +121,12 @@ def estabeleceComunicacao(conn, user):
                 dataFile = conn.recv(2048)
                 dataFile = dataFile.decode()
 
-                if excluirArquivo(user, dataFile):
+                if excluirArquivo(user, dataFile): # Exclui o arquivo
                     print("Arquivo excluído com sucesso")
-                    conn.send("200".encode())
-                else:
-                    print("Erro ao excluir arquivo")
-                    conn.send("405".encode())
+                    conn.send("200".encode()) # Envia mensagem de sucesso para o cliente
+                else: # Se o arquivo não existe
+                    print("Erro ao excluir arquivo") 
+                    conn.send("405".encode()) # Envia mensagem de erro para o cliente
 
             elif data == '4': # Renomear arquivo
                 # receber o nome do arquivo
@@ -115,13 +137,12 @@ def estabeleceComunicacao(conn, user):
                 newNameFile = conn.recv(2048)
                 newNameFile = newNameFile.decode()
 
-                if renomearArquivo(user, dataFile, newNameFile):
-                    print("Arquivo renomeado com sucesso")
-                    conn.send("200".encode())
-                else:
+                if renomearArquivo(user, dataFile, newNameFile): # Renomeia o arquivo
+                    print("Arquivo renomeado com sucesso") 
+                    conn.send("200".encode()) # Envia mensagem de sucesso para o cliente
+                else: # Se o arquivo não existe
                     print("Erro ao renomear arquivo")
-                    conn.send("405".encode())
-
+                    conn.send("405".encode()) # Envia mensagem de erro para o cliente
 
             elif data == '5': # Adicionar ou atualizar arquivo
                 # receber o nome do arquivo e o tamanho do arquivo
@@ -133,9 +154,10 @@ def estabeleceComunicacao(conn, user):
                 nomeArquivo = dataFile[0]
                 tamanhoArquivo = dataFile[1]
 
+                # serializar o arquivo
                 serializar = struct.Struct("{}s {}s".format(len(nomeArquivo.split()[0]), int(tamanhoArquivo.split()[0])))
-                
-                conn.send("200".encode())
+                 
+                conn.send("200".encode()) # Envia mensagem de sucesso para o cliente
                 print("Recebendo arquivo...")
 
                 # receber o arquivo
@@ -145,69 +167,75 @@ def estabeleceComunicacao(conn, user):
                 # deserializar o arquivo
                 nome, arquivo = serializar.unpack(data.encode())
 
-                if salvarArquivo(user, nome.decode(), arquivo):
+                if salvarArquivo(user, nome.decode(), arquivo): # Salva o arquivo
                     print("Arquivo salvo com sucesso")
-                    conn.send("200".encode())
-                else:
+                    conn.send("200".encode()) # Envia mensagem de sucesso para o cliente
+                else: # Se o arquivo não existe
                     print("Erro ao salvar arquivo")
-                    conn.send("405".encode())    
+                    conn.send("405".encode())    # Envia mensagem de erro para o cliente 
             
-            elif data == '11':
+            elif data == '11': # Encerrar conexão
                 print("Encerrando cliente...")
                 time.sleep(5)
-                conn.close()
-                return False
+                conn.close() # Encerra a conexão com o cliente
+                return False # Encerra o loop
             
-        except Exception as e:
-            print(e)
-            #conn.close()
-            return False
+        except Exception as e: # Se ocorrer algum erro
+            print(e) # Imprime o erro
+            return False # Encerra o loop
 
 def login(conn):
-    for i in range(2, -1, -1):
-        cls()
+    """
+    Função que realiza o login do usuário
+    """
+    for i in range(2, -1, -1): # 3 tentativas
+        cls() # Limpa a tela
         # get username
-        username = conn.recv(2048)
+        username = conn.recv(2048) 
         username = username.decode()
        
         # get password 
         password = conn.recv(2048)
         password = password.decode()
 
-        if (verificausuario(username)):
-            if (verificasenha(username,password)):
-                print("Seja bem-vindo, " + username)
-                conn.send("200".encode())
-                print("Login efetuado com sucesso\n")
+        if (verificausuario(username)): # Verifica se o usuário existe
+            if (verificasenha(username,password)): # Verifica se a senha está correta
+                print("Seja bem-vindo, " + username) 
+                conn.send("200".encode()) # Envia mensagem de sucesso para o cliente
+                print("Login efetuado com sucesso\n") 
                 time.sleep(5)
-                return username
-            else:
+                return username # Retorna o nome do usuário
+            else: # Se a senha está incorreta
                 print("Senha incorreta")
-                print(f"Login falhou, você tem mais {i} tentativas!")
-                conn.send("405".encode())
-                time.sleep(5)
-                continue
-        else:
+                print(f"Login falhou, você tem mais {i} tentativas!") 
+                conn.send("405".encode()) # Envia mensagem de erro para o cliente
+                time.sleep(5) 
+                continue # Continua o loop
+        else: # Se o usuário não existe
             # caso tenha que cadastrar um novo usuario, requisitar senha de administrador
             print("Usuário não cadastrado, inserindo novo usuário")
-            conn.send("404".encode())
+            conn.send("404".encode()) # Envia mensagem de usuário inexistente para o cliente
 
-            adm = conn.recv(2048)
-            adm = adm.decode()
+            # Recebe a senha de administrador
+            adm = conn.recv(2048) 
+            adm = adm.decode() 
 
-            if (insereusuario(username, password, adm)):
-                conn.send("200".encode())
+            if (insereusuario(username, password, adm)): # Insere o novo usuário
+                conn.send("200".encode()) # Envia mensagem de sucesso para o cliente
                 print("Login efetuado com sucesso\n")
                 time.sleep(5)
-                return username
-            else:
-                conn.send("405".encode())
+                return username # Retorna o nome do usuário
+            else: # Se a senha de administrador está incorreta
+                conn.send("405".encode()) # Envia mensagem de erro para o cliente
                 print("Senha de administrador incorreta\n")
                 time.sleep(5)
-                return False
+                return False # Encerra o loop
 
 def main():
+    """
+    Função principal
+    """
     inicializa() # cria pastas e arquivos iniciais
-    start_server()
+    start_server() # inicia o servidor
 
 main()
