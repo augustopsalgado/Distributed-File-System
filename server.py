@@ -82,6 +82,7 @@ def estabeleceComunicacao(conn, user):
                 dataFile = conn.recv(2048)
                 dataFile = dataFile.decode()
 
+                # editar pra possibilitar receber arquivos compartilhados
                 pathFile = "C:\\Files\\" + user + "\\" + dataFile # Path do arquivo
 
                 # Verifica se o arquivo existe no servidor
@@ -174,6 +175,29 @@ def estabeleceComunicacao(conn, user):
                     print("Erro ao salvar arquivo")
                     conn.send("405".encode())    # Envia mensagem de erro para o cliente 
             
+            elif data == '6': # Compartilhar arquivo
+                # receber o nome do arquivo
+                dataFile = conn.recv(2048)
+                dataFile = dataFile.decode()
+
+                # receber o nome do usuário
+                dataUser = conn.recv(2048)
+                dataUser = dataUser.decode()
+
+                # verificar se o usuário existe
+                if not verificarUsuario(dataUser):
+                    print("Usuário não existe")
+                    conn.send("406".encode())
+                    continue
+                else: # Se o usuário existe
+                    if compartilharArquivo(user, dataFile, dataUser): # Compartilha o arquivo
+                        print("Arquivo compartilhado com sucesso")
+                        conn.send("200".encode()) # Envia mensagem de sucesso para o cliente
+                    else: # Se o arquivo não existe
+                        print("Erro ao compartilhar arquivo")
+                        conn.send("404".encode()) # Envia mensagem de erro para o cliente
+                    
+
             elif data == '11': # Encerrar conexão
                 print("Encerrando cliente...")
                 time.sleep(5)

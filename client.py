@@ -229,7 +229,33 @@ def estabeleceComunicacao(conn):
                         print("Erro ao enviar arquivo! Servidor retornou: " + response)
                         time.sleep(5)
                         continue
-                    
+
+            elif opcao == '6': # Dar permissão de acesso do arquivo a outro usuário (Compartilhar)
+                # Enviar o nome do arquivo que deseja compartilhar
+                FileName = input("Digite o nome do arquivo: ")
+                conn.send(FileName.encode())
+
+                # Enviar o nome do usuário que deseja compartilhar o arquivo
+                UserName = input("Digite o nome do usuário: ")
+                conn.send(UserName.encode())
+
+                # receber resposta do servidor
+                response = conn.recv(2048)
+                response = response.decode()
+
+                if response == "404": # Arquivo não encontrado
+                    print("Arquivo não encontrado!")
+                    continue
+                elif response == "406": # Usuário não encontrado
+                    print("Usuário não encontrado!")
+                    continue
+                else: # Arquivo encontrado
+                    print("Arquivo encontrado!")
+                    print("Compartilhando arquivo...")
+                    time.sleep(2)
+                    print("Arquivo compartilhado com sucesso!")
+                    time.sleep(2)
+                    continue
             elif opcao == '11': # Encerrar conexão
                 print("Encerrando cliente...")
                 time.sleep(5)
@@ -248,9 +274,8 @@ def estabeleceComunicacao(conn):
             conn.close()
             return False
 
-
 def main():
-    inicializa() # Inicializa o cliente 
+    #inicializa() # Inicializa o cliente 
     
     client_socket = cria_socket_client() # Cria o socket do cliente
     if not client_socket: # Erro ao criar o socket

@@ -1,5 +1,6 @@
 from datetime import datetime
 import hashlib
+import shutil
 import ctypes
 import struct
 import json
@@ -10,10 +11,13 @@ Arquivo de configuração do sistema
 Contém as variáveis de configuração do sistema
 E as funções em comum para o cliente e servidor
 """
-Files = "C:\\Files\\" # Diretório de arquivos
-Control = "C:\\Control\\" # Diretório de controle
-Meta = "C:\\Meta\\" # Diretório de metadados
-usuarios = "C:\\Control\\users.txt" # Arquivo de usuários
+Files = "C:\\Servidor\\Files\\" # Diretório de arquivos
+Control = "C:\\Servidor\\Control\\" # Diretório de controle
+Meta = "C:\\Servidor\\Meta\\" # Diretório de metadados
+Share = "C:\\Servidor\\Share\\" # Diretório de compartilhamento
+MetaShare = "C:\\Servidor\\Meta\\Share\\" # Diretório de metadados de compartilhamento
+
+usuarios = "C:\\Servidor\\Control\\users.txt" # Arquivo de usuários
 
 # admin123 - senha de administrador do sistema
 superUser = "7fcf4ba391c48784edde599889d6e3f1e47a27db36ecc050cc92f259bfac38afad2c68a1ae804d77075e8fb722503f3eca2b2c1006ee6f6c7b7628cb45fffd1d"
@@ -40,16 +44,17 @@ def inicializa():
     criar os diretórios de arquivos, controle e metadados
     """
     if not os.path.isdir(Files):
-        os.mkdir("C:\\Files")
+        os.makedirs(Files)
     if not os.path.isdir(Control):
-        os.mkdir('C:\\Control')
+        os.makedirs(Control)
+    if not os.path.isdir(Share):
+        os.makedirs(Share)
     if not os.path.isdir(Meta):
-        os.mkdir('C:\\Meta')
+        os.makedirs(Meta)
+        os.makedirs(MetaShare)
         FILE_ATTRIBUTE_HIDDEN = 0x02
         ret = ctypes.windll.kernel32.SetFileAttributesW(Meta, FILE_ATTRIBUTE_HIDDEN)
         ret = ctypes.windll.kernel32.SetFileAttributesW(Control, FILE_ATTRIBUTE_HIDDEN)
-
-
 
 def imprimemenu():
     """
@@ -57,13 +62,12 @@ def imprimemenu():
     """
     print("\n\n------------------------------------------\n\n")
     print("Opções do sistema: \n")
-    print("0 - Exibir arquivos*\n")
-    print("1 - Receber um arquivo*\n") # servidor pro cliente 
-    print("2 - Fechar um arquivo\n") 
-    print("3 - Excluir um arquivo*\n")
-    print("4 - Renomear um arquivo*\n")
-    print("5 - Adicionar ou atualizar arquivo*\n")
-    print("6 - Dar permissão de acesso do arquivo a outro usuário\n")
+    print("0 - Exibir arquivos (List)\n")
+    print("1 - Receber um arquivo (Get)\n") # servidor pro cliente 
+    print("3 - Excluir um arquivo (Delete)\n")
+    print("4 - Renomear um arquivo \n")
+    print("5 - Adicionar ou atualizar arquivo (Put)\n")
+    print("6 - Dar permissão de acesso do arquivo a outro usuário (Compartilhar)\n")
     print("7 - Retirar permissão de acesso de outro usuário\n")
     print("8 - Mostrar histórico de acessos de um arquivo\n")
     print("9 - Mostrar lista de usuários com permissão de acesso\n")
@@ -92,8 +96,7 @@ def configSessao(user):
             meta = json.load(f)     # carregar metadados do arquivo fileAdr
 
         meta['modificado_em'] = str(datetime.now()) # atualizar data de modificação
-        meta['arquivos'] = os.listdir(Files + user) # atualizar lista de arquivos
-
+        
         with open(fileAdr, "w") as f: # abrir arquivo fileAdr
             json.dump(meta, f, indent=4) # salvar metadados no arquivo fileAdr
     else:
@@ -111,6 +114,41 @@ def configSessao(user):
         with open(fileAdr, "w+") as f: # abrir arquivo fileAdr
             json.dump(meta, f, indent=4) # salvar metadados no arquivo fileAdr
 
+def compartilharArquivo(user, nomeArquivo, userShare):
+    """
+    Função para compartilhar um arquivo com outro usuário
+    """
+    pathArquivo = Files + user + "\\" + nomeArquivo # endereço do arquivo 
+
+    # verificar se arquivo existe
+    if os.path.isfile(pathArquivo):
+        # copiar arquivo para o diretório Share
+        pathShareArquivo = Share  + nomeArquivo
+        shutil.copy(pathArquivo, pathShareArquivo)
+        # criar arquivo de metadados do arquivo compartilhado
+        with open(MetaShare + nomeArquivo + ".json", "w+") as f:
+            meta = {}
+            meta['usuarioCriadorDoArquivo'] = user
+            meta['compartilhado_em'] = str(datetime.now())
+            meta['modificado_em'] = str(datetime.now())
+            meta['compartilhado_com'] = [userShare, user]
+            json.dump(meta, f, indent=4)
+        
+        # Atualizar arquivo de metadados do usuário que recebeu o arquivo compartilhado
+        fileAdr = Meta + userShare + "\\meta.json" # endereço do arquivo de metadados do usuário que recebeu o arquivo compartilhado
+        with open(fileAdr, "r") as f: # abrir arquivo meta do usuário que recebeu o arquivo compartilhado
+            meta = json.load(f)
+        
+        meta['arquivos'] = meta['arquivos'] + [pathShareArquivo] # atualizar lista de arquivos do usuário que recebeu o arquivo compartilhado
+
+        # Atualizar arquivo de metadados do usuário que compartilhou o arquivo
+        with open(fileAdr, "w") as f:
+            json.dump(meta, f, indent=4)
+
+        return True
+    else:
+        print("Arquivo não encontrado")
+        return False
 
 def serializarArquivo(pathFile):
     try:
@@ -247,6 +285,16 @@ def carregausuarios():
         arquivo = open(usuarios,'x',encoding='utf8') # criar o arquivo usuarios.txt
     arquivo.close() # fechar o arquivo
     return users
+
+def verificarUsuario(user):
+    """
+    Função para verificar se um usuário existe
+    """
+    users = carregausuarios() # carregar os usuários do arquivo usuarios.txt
+    if user in users.keys(): # se o usuário existir
+        return True # retornar True
+    else:
+        return False # retornar False
 
 def listausuarios():
     """
