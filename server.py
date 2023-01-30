@@ -72,12 +72,12 @@ def estabeleceComunicacao(conn, user):
             data = conn.recv(2048) # Recebe a requisição do cliente
             data = data.decode()
 
-            if data == '0': # Exibir/Listar arquivos (cliente lista os arquivos do servidor)
+            if data == '1': # Exibir/Listar arquivos (cliente lista os arquivos do servidor)
                 lista =  listarArquivos(user) # Lista os arquivos do usuário
                 conn.send(lista.encode()) # Envia a lista de arquivos para o cliente
                 print("Arquivos listados com sucesso")
             
-            elif data == '1': # Receber arquivo (cliente recebe arquivo do servidor)
+            elif data == '2': # Receber arquivo (cliente recebe arquivo do servidor)
                 # receber o nome do arquivo
                 dataFile = conn.recv(2048)
                 dataFile = dataFile.decode()
@@ -117,7 +117,7 @@ def estabeleceComunicacao(conn, user):
                             time.sleep(5)
                             continue
 
-            elif data == '3': # Excluir arquivo
+            elif data == '4': # Excluir arquivo
                 # receber o nome do arquivo
                 dataFile = conn.recv(2048)
                 dataFile = dataFile.decode()
@@ -129,7 +129,7 @@ def estabeleceComunicacao(conn, user):
                     print("Erro ao excluir arquivo") 
                     conn.send("405".encode()) # Envia mensagem de erro para o cliente
 
-            elif data == '4': # Renomear arquivo
+            elif data == '5': # Renomear arquivo
                 # receber o nome do arquivo
                 dataFile = conn.recv(2048)
                 dataFile = dataFile.decode()
@@ -145,7 +145,7 @@ def estabeleceComunicacao(conn, user):
                     print("Erro ao renomear arquivo")
                     conn.send("405".encode()) # Envia mensagem de erro para o cliente
 
-            elif data == '5': # Adicionar ou atualizar arquivo
+            elif data == '3': # Adicionar ou atualizar arquivo
                 # receber o nome do arquivo e o tamanho do arquivo
                 dataFile = conn.recv(2048)
                 dataFile = dataFile.decode()

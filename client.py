@@ -92,7 +92,7 @@ def estabeleceComunicacao(conn):
             opcao = input("Digite a opção desejada: ") # Recebe a opção do usuário
             conn.send(opcao.encode()) # Envia a opção para o servidor
 
-            if opcao == '1': # Cliente recebe arquivo do servidor
+            if opcao == '2': #  Receber um arquivo (Get) - Cliente recebe arquivo do servidor
                 # Enviar o nome do arquivo que deseja receber
                 FileName = input("Digite o nome do arquivo: ")
                 conn.send(FileName.encode()) 
@@ -154,7 +154,7 @@ def estabeleceComunicacao(conn):
                         time.sleep(2)
                     continue
             
-            elif opcao == '3': # Excluir arquivo do servidor
+            elif opcao == '4': # Excluir arquivo do servidor
                 # Enviar o nome do arquivo que deseja excluir
                 FileName = input("Digite o nome do arquivo: ")
                 conn.send(FileName.encode())
@@ -174,7 +174,7 @@ def estabeleceComunicacao(conn):
                     time.sleep(2)
                     continue
             
-            elif opcao == '4': # Renomear arquivo do servidor
+            elif opcao == '5': # Renomear arquivo do servidor
                 # Enviar o nome do arquivo que deseja renomear
                 FileName = input("Digite o nome do arquivo: ")
                 conn.send(FileName.encode())
@@ -198,7 +198,7 @@ def estabeleceComunicacao(conn):
                     time.sleep(2)
                     continue
 
-            elif opcao == '5': # Adicionar ou atualizar arquivo
+            elif opcao == '3': # Adicionar ou atualizar arquivo (Put)
                 while True: # Loop para receber o caminho do arquivo
                     pathFile = input("Digite o caminho do arquivo: ") # Recebe o caminho do arquivo
                     if not os.path.isfile(pathFile): # Verifica se o arquivo existe
@@ -256,6 +256,7 @@ def estabeleceComunicacao(conn):
                     print("Arquivo compartilhado com sucesso!")
                     time.sleep(2)
                     continue
+            
             elif opcao == '11': # Encerrar conexão
                 print("Encerrando cliente...")
                 time.sleep(5)

@@ -61,17 +61,20 @@ def imprimemenu():
     Função para exibir o menu de opções do sistema
     """
     print("\n\n------------------------------------------\n\n")
-    print("Opções do sistema: \n")
-    print("0 - Exibir arquivos (List)\n")
-    print("1 - Receber um arquivo (Get)\n") # servidor pro cliente 
-    print("3 - Excluir um arquivo (Delete)\n")
-    print("4 - Renomear um arquivo \n")
-    print("5 - Adicionar ou atualizar arquivo (Put)\n")
-    print("6 - Dar permissão de acesso do arquivo a outro usuário (Compartilhar)\n")
+    print("Opções: \n")
+    print("1 - Exibir arquivos (List)\n")
+    print("2 - Receber um arquivo (Get)\n") # servidor pro cliente
+    print("3 - Adicionar ou atualizar arquivo (Put)\n") 
+    print("4 - Excluir um arquivo (Delete)\n")
+    print("5 - Renomear um arquivo \n")
+    
+    print("\n\n------------------------------------------\n\n")
+    print("Opções de compartilhamento: \n")
+    print("6 - Dar permissão de acesso dos meus arquivos a outro usuário\n") 
     print("7 - Retirar permissão de acesso de outro usuário\n")
-    print("8 - Mostrar histórico de acessos de um arquivo\n")
-    print("9 - Mostrar lista de usuários com permissão de acesso\n")
-    print("10 - Mostrar lista de modificações de um arquivo\n")
+    print("8 - Listar arquivos compartilhados comigo (List)\n")
+    print("9 - Receber um arquivo compartilhado (Get)\n")
+    print("10 - Adicionar ou atualizar arquivo compartilhado (Put)\n")
     print("11 - Sair\n")
 
 
