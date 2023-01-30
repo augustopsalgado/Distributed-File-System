@@ -60,7 +60,7 @@ def imprimemenu():
     """
     Função para exibir o menu de opções do sistema
     """
-    print("\n\n------------------------------------------\n\n")
+    print("\n------------------------------------------\n")
     print("Opções: \n")
     print("1 - Exibir arquivos (List)\n")
     print("2 - Receber um arquivo (Get)\n") # servidor pro cliente
@@ -68,7 +68,7 @@ def imprimemenu():
     print("4 - Excluir um arquivo (Delete)\n")
     print("5 - Renomear um arquivo \n")
     
-    print("\n\n------------------------------------------\n\n")
+    print("\n------------------------------------------\n")
     print("Opções de compartilhamento: \n")
     print("6 - Dar permissão de acesso dos meus arquivos a outro usuário\n") 
     print("7 - Retirar permissão de acesso de outro usuário\n")
@@ -77,6 +77,102 @@ def imprimemenu():
     print("10 - Adicionar ou atualizar arquivo compartilhado (Put)\n")
     print("11 - Sair\n")
 
+def criaArquivoMetaUser(user):
+    """
+    Função responsável por criar o arquivo de metadados do usuário
+    """
+    pathFile = Meta + user + "\\MetaSessao.json" # endereço do arquivo de metadados do usuário que compartilhou o arquivo
+
+    # criando dict de metadados
+    meta = {}
+    meta['nomeUsuario'] = user
+    meta['criado_em'] = str(datetime.now())
+    meta['modificado_em'] = str(datetime.now())
+    meta['meus_Arquivos_Locais'] = []
+    meta['meus_Arquivos_Compartilhados'] = []
+    meta['arquivos_Compartilhados_Comigo'] = []
+    meta['usando_arquivo'] = 'False'
+    meta['nomeArquivo'] = ""
+    meta['dataInicioLock'] = ""
+    meta['dataFimLock'] = ""
+
+    # salvando metadados no arquivo
+    with open(pathFile, "w+") as f:
+        json.dump(meta, f, indent=4)
+
+def listaArquivosLocais(user):
+    """
+    Função responsável por listar os arquivos locais do usuário
+    """
+    arquivos = os.listdir(Files + user) # lista de arquivos do usuário
+    if arquivos == None: # se não houver arquivos
+        return []
+    else: # se houver arquivos
+        return arquivos
+
+def attArquivoMetaUser(user, arquivoCompartilhado = None, arquivoCompartilhadoComigo = None):
+    """
+    Função responsável por atualizar o arquivo de metadados do usuário
+    Atualizar modificado_em, meus_Arquivos_Locais
+    """
+    pathFile = Meta + user + "\\MetaSessao.json" # endereço do arquivo de metadados do usuário que compartilhou o arquivo
+
+    # carregando metadados do arquivo
+    with open(pathFile, "r") as f:
+        meta = json.load(f)
+    
+    # atualizando metadados
+    meta['modificado_em'] = str(datetime.now())
+    meta['meus_Arquivos_Locais'] = listaArquivosLocais(user)
+
+    if arquivoCompartilhado != None:
+        meta['meus_Arquivos_Compartilhados'].append(arquivoCompartilhado)
+    
+    if arquivoCompartilhadoComigo != None:
+         meta['arquivos_Compartilhados_Comigo'].append(arquivoCompartilhadoComigo)
+
+    # salvando metadados no arquivo
+    with open(pathFile, "w") as f:
+        json.dump(meta, f, indent=4) 
+
+def criaArquivoMetaShare(pathFile, user, userShare, nomeArquivo):
+    """
+    Função responsável por criar o arquivo de metadados do arquivo compartilhado
+    """
+    # criando dict de metadados
+    meta = {}
+    meta['owner_arquivo'] = user
+    meta['nomeArquivo'] = nomeArquivo
+    meta['compartilhado_em'] = str(datetime.now())
+    meta['compartilhado_com'] = [userShare]
+    
+    meta['Lock_arquivo'] = 'False'
+    meta['nomeUsuarioLock'] = ""
+    meta['dataInicioLock'] = ""
+    meta['dataFimLock'] = ""
+   
+    # salvando metadados no arquivo
+    with open(pathFile, "w+") as f:
+        json.dump(meta, f, indent=4)
+
+def attArquivoMetaShare(pathFile, user, userShare):
+    """
+    Função responsável por atualizar o arquivo de metadados do arquivo compartilhado
+    Atualizar compartilhado_com
+    """
+    # carregando metadados do arquivo
+    with open(pathFile, "r") as f:
+        meta = json.load(f)
+    
+    if meta['owner_arquivo'] != user: # se o usuário não for o dono do arquivo
+        print("Você não é o dono do arquivo")
+        return False
+    else: # se o usuário for o dono do arquivo
+        meta['compartilhado_com'].append(userShare) # atualizando compartilhado_com addc novo usuário
+
+    # salvando metadados no arquivo
+    with open(pathFile, "w") as f:
+        json.dump(meta, f, indent=4)
 
 def configSessao(user):
     """
@@ -91,31 +187,13 @@ def configSessao(user):
     if not os.path.isdir(Files + user): # verificar se diretório Files + user existe
         os.mkdir(Files + user) # criar diretório Files + user
          
-    fileAdr = Meta + user + "\\meta.json" # endereço do arquivo de metadados do usuário
+    fileAdr = Meta + user + "\\MetaSessao.json" # endereço do arquivo de metadados do usuário
 
-    # verificar se arquivo fileAdr existe
+    # verificar se arquivo meta do usuário existe
     if os.path.isfile(fileAdr): 
-        with open(fileAdr, "r") as f: # abrir arquivo fileAdr
-            meta = json.load(f)     # carregar metadados do arquivo fileAdr
-
-        meta['modificado_em'] = str(datetime.now()) # atualizar data de modificação
-        
-        with open(fileAdr, "w") as f: # abrir arquivo fileAdr
-            json.dump(meta, f, indent=4) # salvar metadados no arquivo fileAdr
+        attArquivoMetaUser(user) # atualizar registrando login no arquivo de metadados do usuário
     else:
-        # criando dict de metadados
-        meta = {} 
-        meta['usuario'] = user
-        meta['criado_em'] = str(datetime.now()) 
-        meta['modificado_em'] = str(datetime.now()) 
-        arquivos = os.listdir(Files + user) # lista de arquivos do usuário
-        if arquivos == None: # se não houver arquivos
-            meta['arquivos'] = [] # criar lista vazia
-        else: # se houver arquivos
-            meta['arquivos'] = arquivos # criar lista com os arquivos
- 
-        with open(fileAdr, "w+") as f: # abrir arquivo fileAdr
-            json.dump(meta, f, indent=4) # salvar metadados no arquivo fileAdr
+        criaArquivoMetaUser(user)
 
 def compartilharArquivo(user, nomeArquivo, userShare):
     """
@@ -123,31 +201,38 @@ def compartilharArquivo(user, nomeArquivo, userShare):
     """
     pathArquivo = Files + user + "\\" + nomeArquivo # endereço do arquivo 
 
-    # verificar se arquivo existe
-    if os.path.isfile(pathArquivo):
-        # copiar arquivo para o diretório Share
-        pathShareArquivo = Share  + nomeArquivo
-        shutil.copy(pathArquivo, pathShareArquivo)
-        # criar arquivo de metadados do arquivo compartilhado
-        with open(MetaShare + nomeArquivo + ".json", "w+") as f:
-            meta = {}
-            meta['usuarioCriadorDoArquivo'] = user
-            meta['compartilhado_em'] = str(datetime.now())
-            meta['modificado_em'] = str(datetime.now())
-            meta['compartilhado_com'] = [userShare, user]
-            json.dump(meta, f, indent=4)
-        
-        # Atualizar arquivo de metadados do usuário que recebeu o arquivo compartilhado
-        fileAdr = Meta + userShare + "\\meta.json" # endereço do arquivo de metadados do usuário que recebeu o arquivo compartilhado
-        with open(fileAdr, "r") as f: # abrir arquivo meta do usuário que recebeu o arquivo compartilhado
-            meta = json.load(f)
-        
-        meta['arquivos'] = meta['arquivos'] + [pathShareArquivo] # atualizar lista de arquivos do usuário que recebeu o arquivo compartilhado
+    # verificar se arquivo existe no diretorio local do usuario, quer dizer arquivo ainda não foi compartilhado
+    if os.path.isfile(pathArquivo): # se arquivo existe
+        pathShareArquivo = Share  + nomeArquivo # endereço de compartilhamento do arquivo
 
-        # Atualizar arquivo de metadados do usuário que compartilhou o arquivo
-        with open(fileAdr, "w") as f:
-            json.dump(meta, f, indent=4)
+        # verificar se já existe arquivo com este nome no diretório Share
+        if os.path.isfile(pathShareArquivo):
+            print("Já existe arquivo com este nome no diretório Share, renomeie o arquivo e tente novamente")
+            return
 
+        try: # mover arquivo para o diretório Share
+            shutil.move(pathArquivo, pathShareArquivo)
+        except Exception as e: # se não conseguir mover arquivo
+            print("Erro ao mover arquivo para o diretório Share")
+            print(e)
+            return
+
+        try: # atualizar o meta dos usuarios que compartilharam o arquivo
+            attArquivoMetaUser(user, nomeArquivo, None) # atualizando meta do usuario que compartilhou o arquivo (owner)
+            attArquivoMetaUser(userShare, None, nomeArquivo) # atualizando meta do usuario que recebeu o arquivo (compartilhado_comigo)
+            
+            # criar arquivo de metadados do arquivo compartilhado
+            criaArquivoMetaShare(MetaShare + nomeArquivo + ".json", user, userShare, nomeArquivo)
+            print("Arquivo compartilhado com sucesso")
+            return True
+        except Exception as e: # se não conseguir atualizar o arquivo de metadados
+            print("Erro ao atualizar arquivo de metadados")
+            print(e)
+            return False    
+    elif os.path.isfile(Share + nomeArquivo): # se arquivo existe no diretório Share, quer dizer que arquivo já foi compartilhado alguma vez
+        attArquivoMetaUser(userShare, None, nomeArquivo) # atualizando meta do usuario que recebeu o arquivo (compartilhado_comigo)
+        attArquivoMetaShare(MetaShare + nomeArquivo + ".json", user, userShare) # atualizando meta do arquivo compartilhado (compartilhado_com)
+        print("Arquivo compartilhado com sucesso")
         return True
     else:
         print("Arquivo não encontrado")
@@ -164,7 +249,6 @@ def serializarArquivo(pathFile):
     except FileNotFoundError:
         print("Arquivo não encontrado")
         return None
-
 
 def salvarArquivo(user, pathFile, dataFile):
     """
@@ -184,17 +268,7 @@ def salvarArquivo(user, pathFile, dataFile):
             print(e) 
             return False 
         
-        # atualizar o arquivo de metadados
-        fileAdr = Meta + user + "\\meta.json" # endereço do arquivo de metadados do usuário
-        with open(fileAdr, "r") as f: # abrir arquivo fileAdr
-            meta = json.load(f) # carregar metadados do arquivo fileAdr
-
-        meta['modificado_em'] = str(datetime.now()) # atualizar data de modificação
-        meta['arquivos'] = os.listdir(Files + user) # atualizar lista de arquivos
-
-
-        with open(fileAdr, "w") as f: # abrir arquivo fileAdr
-            json.dump(meta, f, indent=4) # salvar metadados no arquivo fileAdr
+        attArquivoMetaUser(user)  # atualizar o arquivo de metadados do usuário
         
         return True
     except:
@@ -263,15 +337,19 @@ def listarArquivos(user):
     """
     Função responsável por listar os arquivos de um usuário
     """
-    fileAdr = Meta + user + "\\meta.json" # endereço do arquivo de metadados do usuário
-    with open(fileAdr, "r") as f: # abrir arquivo fileAdr
+    attArquivoMetaUser(user) # atualizar o arquivo de metadados do usuário
+
+    pathFile = Meta + user + "\\MetaSessao.json" # endereço do arquivo de metadados do usuário que compartilhou o arquivo
+    
+    with open(pathFile, "r") as f: # abrir arquivo fileAdr
         meta = json.load(f) # carregar metadados do arquivo fileAdr
 
-    if meta['arquivos'] == []: # se a lista de arquivos estiver vazia
+    if meta['meus_Arquivos_Locais'] == [] and meta['meus_Arquivos_Compartilhados'] == []: # se a lista de arquivos estiver vazia
         return "Nenhum arquivo encontrado" # retornar mensagem de erro
+    elif meta['meus_Arquivos_Locais'] == [] and len(meta['meus_Arquivos_Compartilhados']) > 0: # se a lista de arquivos locais estiver vazia e compartilhados estiver arquivos
+        return  "Lista de Arquivos Locais:\nNenhum arquivo encontrado" + "\nLista de Meus Arquivos Compartilhados:\n" + str(meta['meus_Arquivos_Compartilhados']) # retornar a lista de arquivos
     else:
-        return str(meta['arquivos']) # retornar a lista de arquivos
-    
+        return  "Lista de Arquivos Locais:\n" + str(meta['meus_Arquivos_Locais']) + "\nLista de Meus Arquivos Compartilhados:\n" + str(meta['meus_Arquivos_Compartilhados']) # retornar a lista de arquivos
 
 def carregausuarios():
     """
@@ -308,16 +386,6 @@ def listausuarios():
     for user in users: # para cada usuário no dicionário users
         lista.append(user[0])   # adicionar o usuário à lista
     return lista # retornar a lista de usuários
-
-def verificausuario(user):
-    """
-    Função para verificar se um usuário existe
-    """
-    users = carregausuarios() # carregar os usuários do arquivo usuarios.txt
-    if user in users.keys(): # se o usuário estiver no dicionário users
-        return True
-    else:
-        return False
 
 def insereusuario(usuario,senha, adm):
     """

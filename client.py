@@ -154,7 +154,7 @@ def estabeleceComunicacao(conn):
                         time.sleep(2)
                     continue
             
-            elif opcao == '4': # Excluir arquivo do servidor
+            elif opcao == '4': #   Excluir arquivo do servidor
                 # Enviar o nome do arquivo que deseja excluir
                 FileName = input("Digite o nome do arquivo: ")
                 conn.send(FileName.encode())

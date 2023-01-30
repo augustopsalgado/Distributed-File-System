@@ -222,7 +222,7 @@ def login(conn):
         password = conn.recv(2048)
         password = password.decode()
 
-        if (verificausuario(username)): # Verifica se o usuário existe
+        if (verificarUsuario(username)): # Verifica se o usuário existe
             if (verificasenha(username,password)): # Verifica se a senha está correta
                 print("Seja bem-vindo, " + username) 
                 conn.send("200".encode()) # Envia mensagem de sucesso para o cliente
